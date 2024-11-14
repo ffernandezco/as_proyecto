@@ -1,0 +1,76 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx_server
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - flask
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: as
+      POSTGRES_DB: database
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres_db
+    ports:
+      - "8081:8080"
+
+  updater:
+    build: ./updater
+    container_name: updater
+    environment:
+      POSTGRES_USER: as
+      POSTGRES_DB: database
+      POSTGRES_HOST: postgres_db
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      API_BASE_URL: "https://api.euskadi.eus/culture/events/v1.0/events/byYear/2024"
+    secrets:
+      - postgres_password
+    depends_on:
+      - postgres
+
+  flask:
+    image: python:latest
+    container_name: flask
+    environment:
+      POSTGRES_USER: as
+      POSTGRES_DB: database
+      POSTGRES_HOST: postgres_db
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - ./flask_app:/app
+    working_dir: /app
+    command: >
+      sh -c "pip install --upgrade pip && pip install -r /app/requirements.txt && python /app/app.py"
+    ports:
+      - "5001:5000"
+    depends_on:
+      - postgres
+
+  gotenberg:
+      image: gotenberg/gotenberg:8
+      ports:
+        - "3000:3000"
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+
+volumes:
+  postgres_data:

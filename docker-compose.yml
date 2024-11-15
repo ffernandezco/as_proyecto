@@ -30,7 +30,7 @@ services:
       - "8081:8080"
 
   updater:
-    build: ./updater
+    image: franciscofdez/updater:latest
     container_name: updater
     environment:
       POSTGRES_USER: as

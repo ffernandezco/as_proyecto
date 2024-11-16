@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: updater-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: updater
+  template:
+    metadata:
+      labels:
+        app: updater
+    spec:
+      containers:
+      - name: updater
+        image: franciscofdez/updater-amd64:latest
+        env:
+        - name: POSTGRES_USER
+          value: as
+        - name: POSTGRES_DB
+          value: database
+        - name: POSTGRES_HOST
+          value: postgres-service
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: API_BASE_URL
+          value: "https://api.euskadi.eus/culture/events/v1.0/events/byYear/2024"
+        volumeMounts:
+        - name: updater-config
+          mountPath: /etc/updater
+      volumes:
+      - name: updater-config
+        configMap:
+          name: updater-config-map

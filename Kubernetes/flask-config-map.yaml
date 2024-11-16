@@ -1,0 +1,387 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flask-config-map
+data:
+  app.py: |
+    import os
+    from flask import Flask, render_template, jsonify, request, Response
+    from flask_cors import CORS
+    from datetime import datetime
+    import psycopg2
+    import requests
+
+    # Inicialización de Flask
+    app = Flask(__name__)
+    CORS(app)  # Permite CORS en todas las rutas
+
+    # Configuración de la base de datos
+    DB_USER = os.getenv("POSTGRES_USER", "as")
+    DB_NAME = os.getenv("POSTGRES_DB", "database")
+    DB_HOST = os.getenv("POSTGRES_HOST", "postgres_db")
+    # Leer la contraseña directamente desde el archivo de secretos
+    password_file_path = os.getenv("POSTGRES_PASSWORD_FILE")
+    with open(password_file_path, "r") as f:
+        DB_PASSWORD = f.read().strip()
+
+    # Función para obtener los eventos de la base de datos
+    def get_events(page=1, per_page=10):
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST
+        )
+        cursor = conn.cursor()
+        
+        # Calcular el offset basado en la página actual y el número de elementos por página
+        offset = (page - 1) * per_page
+        
+        # Obtener la fecha actual
+        current_date = datetime.now()
+        
+        # Modificar la consulta para filtrar los eventos futuros
+        cursor.execute("""
+            SELECT id, company_es, description_es, end_date, language, municipality_es,
+                  municipality_latitude, municipality_longitude, municipality_nora_code,
+                  name_es, opening_hours_es, place_es, price_es, province_nora_code,
+                  start_date, type_es, url_event_es, url_name_es, image_url
+            FROM events
+            WHERE end_date > %s
+            ORDER BY start_date ASC
+            LIMIT %s OFFSET %s;
+        """, (current_date, per_page, offset))  # Filtra eventos por fecha actual
+        rows = cursor.fetchall()
+        
+        events = [
+            {
+                "id": row[0],
+                "company": row[1],
+                "description": row[2],
+                "end_date": row[3],
+                "language": row[4],
+                "municipality": row[5],
+                "latitude": row[6],
+                "longitude": row[7],
+                "nora_code": row[8],
+                "name": row[9],
+                "opening_hours": row[10],
+                "place": row[11],
+                "price": row[12],
+                "province_nora_code": row[13],
+                "start_date": row[14],
+                "type": row[15],
+                "url_event": row[16],
+                "url_name": row[17],
+                "image_url": row[18]
+            }
+            for row in rows
+        ]
+        
+        cursor.close()
+        conn.close()
+        
+        return events
+
+    # Ruta de la API para obtener los eventos
+    @app.route('/api/events', methods=['GET'])
+    def events():
+        events = get_events()
+        return jsonify(events)
+
+    # Nueva ruta de la API para obtener un evento específico por ID
+    @app.route('/api/events/<id>', methods=['GET'])
+    def get_event(id):
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST
+        )
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, company_es, description_es, end_date, language, municipality_es,
+                  municipality_latitude, municipality_longitude, municipality_nora_code,
+                  name_es, opening_hours_es, place_es, price_es, province_nora_code,
+                  start_date, type_es, url_event_es, url_name_es, image_url
+            FROM events WHERE id = %s;
+        """, (id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if row:
+            event = {
+                "id": row[0],
+                "company": row[1],
+                "description": row[2],
+                "end_date": row[3],
+                "language": row[4],
+                "municipality": row[5],
+                "latitude": row[6],
+                "longitude": row[7],
+                "nora_code": row[8],
+                "name": row[9],
+                "opening_hours": row[10],
+                "place": row[11],
+                "price": row[12],
+                "province_nora_code": row[13],
+                "start_date": row[14],
+                "type": row[15],
+                "url_event": row[16],
+                "url_name": row[17],
+                "image_url": row[18]
+            }
+            return jsonify(event)
+        else:
+            return jsonify({"error": "Evento no encontrado"}), 404
+        
+    def get_total_events():
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST
+        )
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM events")
+        total = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+        return total
+
+    # Nueva ruta para renderizar el index con eventos
+    @app.route('/')
+    def index():
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 33))
+        
+        events = get_events(page=page, per_page=per_page)
+        total_events = get_total_events()
+        total_pages = (total_events // per_page) + (1 if total_events % per_page else 0)
+
+        return render_template('index.html.jinja2', events=events, page=page, per_page=per_page, total_pages=total_pages)
+
+    @app.route('/evento/<int:event_id>')
+    def evento(event_id):
+        # Obtener el evento por ID desde la base de datos
+        event_data = get_event(str(event_id))
+        
+        # Convertir la respuesta en un JSON
+        event_json = event_data.get_json()
+
+        if "error" not in event_json:
+            # Renderizar el template con los datos del evento
+            return render_template('evento.html', evento=event_json)
+        else:
+            return "Evento no encontrado", 404
+        
+    @app.route('/api/events/<id>/export_pdf', methods=['GET'])
+    def export_event_pdf(id):
+        gotenberg_url = "http://gotenberg:3000/forms/chromium/convert/url"
+        event_url = f"http://flask:5000/evento/{id}"  # Asegúrate de que esta URL sea accesible desde Gotenberg
+        
+        # Configura los datos en formato multipart/form-data
+        files = {
+            "url": (None, event_url)
+        }
+
+        try:
+            response = requests.post(gotenberg_url, files=files)
+            response.raise_for_status()  # Asegura que no haya errores HTTP
+        except requests.exceptions.RequestException as e:
+            app.logger.error(f"Error al generar el PDF: {str(e)}")
+            return jsonify({"error": f"Error al generar el PDF: {str(e)}"}), 500
+
+        # Retornar el PDF para descarga
+        return Response(
+            response.content,
+            mimetype="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment;filename=evento_{id}.pdf"
+            }
+        )
+
+    if __name__ == '__main__':
+        app.run(host='0.0.0.0', port=5000)
+  requirements.txt: |
+    requests
+    psycopg2
+    datetime
+  templates/index.html.jinja2: |
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Eventos</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    </head>
+    <body>
+
+        <nav class="py-2 bg-light border-bottom">
+        <div class="container d-flex flex-wrap">
+          <ul class="nav me-auto">
+            <li class="nav-item"><a href="/" class="nav-link link-dark px-2 active" aria-current="page">Agenda Cultural Euskadi</a></li>
+          </ul>
+          <ul class="nav">
+            <li class="nav-item"><a href="https://opendata.euskadi.eus" class="nav-link link-dark px-2">Open Data</a></li>
+            <li class="nav-item"><a href="https://www.ehu.eus/es/" class="nav-link link-dark px-2">UPV/EHU</a></li>
+          </ul>
+        </div>
+      </nav>
+        <section class="jumbotron text-center m-5">
+            <div class="container">
+              <h1 class="jumbotron-heading">Agenda cultural de Euskadi</h1>
+              <p class="lead text-muted">Consulta a continuación los próximos eventos que forman parte de la Agenda Cultural de Euskadi.</p>
+            </div>
+          </section>
+        <div class="album py-5 bg-light">
+            <div class="container">
+                <div class="row" id="eventos-container">
+                    {% for evento in events %}
+                    <div class="col-md-4">
+                        <div class="card mb-4 box-shadow">
+                            <img class="card-img-top" src="{{ evento.image_url or url_for('static', filename='images/place.png') }}">
+                            {% if evento.price %}
+                                <span class="badge bg-primary position-absolute top-0 start-0 m-3">{{ evento.price }}</span>
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">{{ evento.name }}</h5>
+                                <p class="card-text"><strong>Ubicación</strong>: {{ evento.municipality or 'Lugar no disponible' }}</p>
+                                <p class="card-text"><strong>Fecha</strong>: {{ evento.end_date or 'Fecha no disponible' }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                <div class="btn-group">
+                                    <a href="/evento/{{ evento.id }}" class="btn btn-sm btn-outline-secondary">Ver detalles</a>
+                                    <a href="/api/events/{{ evento.id }}/export_pdf" class="btn btn-sm btn-outline-secondary">PDF</a>
+                                    </div>
+                                    {% if evento.type %}
+                                        <small class="text-muted">{{ evento.type }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <!-- Paginación -->
+            <div class="d-flex justify-content-center mt-4">
+                {% if page > 1 %}
+                    <a href="?page={{ page - 1 }}&per_page={{ per_page }}" class="btn btn-secondary me-2">Anterior</a>
+                {% endif %}
+                
+                {% if page < total_pages %}
+                    <a href="?page={{ page + 1 }}&per_page={{ per_page }}" class="btn btn-secondary">Siguiente</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <footer class="text-muted pt-4 footer bg-light">
+            <div class="container">
+            <p>Creado por Francisco Fernández a partir de los datos de la <a href="https://opendata.euskadi.eus/api-culture/">API de Open Data Euskadi</a>.</p>
+            <p>Diseño adaptado a partir de <a href="https://getbootstrap.com/docs/4.0/examples/album/">Bootstrap Examples</a>.</p>
+            </div>
+        </footer>
+
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    </body>
+    </html>
+  templates/evento.html: |
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Detalle del Evento</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin=""/>
+    </head>
+    <body>
+        <nav class="py-2 bg-light border-bottom">
+            <div class="container d-flex flex-wrap">
+              <ul class="nav me-auto">
+                <li class="nav-item"><a href="/" class="nav-link link-dark px-2 active" aria-current="page">Agenda Cultural Euskadi</a></li>
+              </ul>
+              <ul class="nav">
+                <li class="nav-item"><a href="https://opendata.euskadi.eus" class="nav-link link-dark px-2">Open Data</a></li>
+                <li class="nav-item"><a href="https://www.ehu.eus/es/" class="nav-link link-dark px-2">UPV/EHU</a></li>
+              </ul>
+            </div>
+        </nav>
+
+        <div class="container p-5">
+            <div class="card shadow-sm">
+                {% if evento.image_url %}
+                    <img src="{{ evento.image_url }}" class="card-img-top" alt="Imagen del evento">
+                    <!-- Categoría tipo de evento -->
+                    {% if evento.type %}
+                        <span class="badge bg-primary position-absolute top-0 start-0 m-3">{{ evento.type }}</span>
+                    {% endif %}
+                {% endif %}
+                <div class="card-body">
+                    <h3 class="card-title text-center">{{ evento.name | safe}}</h3>
+                    {% if evento.municipality %}
+                        <p class="text-muted text-center">{{ evento.municipality }}</p>
+                    {% endif %}
+                    {% if evento.start_date or evento.end_date %}
+                        <p class="text-center mb-1"><strong>{{ evento.start_date }} - {{ evento.end_date }}</strong></p>
+                    {% endif %}
+                        <p class="text-center mb-1"><strong><a href="/api/events/{{ evento.id }}/export_pdf">Versión PDF</a></strong></p>
+
+                    <!-- Detalles adicionales -->
+                    {% if evento.place %}<p><strong>Lugar:</strong> {{ evento.place }}</p>{% endif %}
+                    {% if evento.price %}<p><strong>Precio:</strong> {{ evento.price }}</p>{% endif %}
+                    {% if evento.language %}<p><strong>Idioma:</strong> {{ evento.language }}</p>{% endif %}
+
+                    <!-- Descripción decodificada -->
+                    {% if evento.description %}
+                        <div><strong>Descripción:</strong> {{ evento.description | safe }}</div>
+                    {% endif %}
+
+                    <!-- Botón de más información -->
+                    {% if evento.url_event %}
+                        <div class="text-center mt-3">
+                            <a href="{{ evento.url_event }}" target="_blank" class="btn btn-primary">Más información</a>
+                        </div>
+                    {% endif %}
+
+                    <!-- Mapa de Leaflet -->
+                    {% if evento.latitude and evento.longitude %}
+                        <div id="map" style="height: 400px;" class="mt-4"></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaflet JS para el mapa -->
+        <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
+        
+        <script>
+            {% if evento.latitude and evento.longitude %}
+            var map = L.map('map').setView([{{ evento.latitude }}, {{ evento.longitude }}], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            L.marker([{{ evento.latitude }}, {{ evento.longitude }}]).addTo(map)
+                .bindPopup("<b>{{ evento.name }}</b><br>{{ evento.place or 'Ubicación del evento' }}")
+                .openPopup();
+            {% else %}
+            document.getElementById('map').innerHTML = "<p class='text-center mt-3'>Ubicación no disponible para este evento.</p>";
+            {% endif %}
+        </script>
+        <div class="d-flex justify-content-center mt-4">
+            <a href="/" class="btn btn-secondary me-2">Todos los eventos</a>
+        </div>
+
+        <footer class="text-muted mt-5 pt-4 footer bg-light">
+            <div class="container">
+            <p>Creado por Francisco Fernández a partir de los datos de la <a href="https://opendata.euskadi.eus/api-culture/">API de Open Data Euskadi</a>.</p>
+            <p>Diseño adaptado a partir de <a href="https://getbootstrap.com/docs/4.0/examples/album/">Bootstrap Examples</a>.</p>
+            </div>
+        </footer>
+
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    </body>
+    </html>

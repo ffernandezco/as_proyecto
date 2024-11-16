@@ -44,7 +44,7 @@ services:
       - postgres
 
   flask:
-    image: franciscofdez/flask_app:latest
+    image: franciscofdez/flask_app-amd64:latest
     container_name: flask
     environment:
       POSTGRES_USER: as

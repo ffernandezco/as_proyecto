@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: updater-config-map
-data:
-  updater.conf: |
-    # Archivo de configuración opcional para el servicio updater
-    retries: 3
-    timeout: 30

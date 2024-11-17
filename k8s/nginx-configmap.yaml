@@ -9,11 +9,13 @@ data:
     http {
         server {
             listen 80;
-            server_name localhost;
+            
+            # Define subdominios específicos
+            server_name flask.localdev.me;
 
-            # Redirigir todas las peticiones al servicio Flask en el contenedor
+            # Redirige solo las solicitudes a flask.localdev.me
             location / {
-                proxy_pass http://flask:5000;
+                proxy_pass http://flask-service:5000;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -21,7 +23,7 @@ data:
             }
 
             location /evento/ {
-                proxy_pass http://flask:5000;
+                proxy_pass http://flask-service:5000;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -33,7 +35,7 @@ data:
 
             # API
             location /api/ {
-                proxy_pass http://flask:5000;
+                proxy_pass http://flask-service:5000;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -43,4 +45,37 @@ data:
                 add_header Access-Control-Allow-Headers 'Content-Type, Authorization';
             }
         }
+
+        server {
+            listen 80;
+
+            # Define otro subdominio para Adminer
+            server_name adminer.localdev.me;
+
+            # Redirige solo las solicitudes a adminer.localdev.me
+            location / {
+                proxy_pass http://adminer-service:8080;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+        }
+
+        server {
+            listen 80;
+
+            # Define otro subdominio para Gotenberg
+            server_name gotenberg.localdev.me;
+
+            # Redirige solo las solicitudes a gotenberg.localdev.me
+            location / {
+                proxy_pass http://gotenberg-service:3000;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+        }
+
     }

@@ -1,4 +1,7 @@
-/secrets/*
+/Docker/secrets/*
+/Kubernetes/secrets/*
+/k8s/secrets/*
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

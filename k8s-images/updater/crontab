@@ -1,0 +1,1 @@
+* * * * * root POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password /usr/local/bin/python /app/main.py >> /var/log/cron.log 2>&1

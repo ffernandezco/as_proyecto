@@ -1,4 +1,4 @@
-#Agenda cultural de Euskadi
+# Agenda cultural de Euskadi
 
 **Francisco Fernández**
 
@@ -6,7 +6,7 @@ Administración de Sistemas / Grado en Ingeniería Informática de Gestión y Si
 
 *[UPV-EHU](https://www.ehu.eus/) / Curso 2024-25*
 
-##Introducción
+## Introducción
 
 Este proyecto propone la creación de una aplicación web funcional basándose en los contenedores de Docker y, de forma opcional, realizar el despliegue equivalente de Kubernetes.
 
@@ -14,7 +14,7 @@ En este caso, la idea es crear un portal web interactivo que permita consultar l
 
 Se ha elegido hacer uso de un servidor web basado en nginx, que se encargará de redirigir las peticiones a un servidor Flask. La información de los eventos queda registrada en una base de datos PostgreSQL y, mediante un entorno adicional basado en Python, se actualizan los datos de los eventos a partir de la [API de Open Data](https://opendata.euskadi.eus/apis/-/apis-open-data/) para contar con actualizaciones en tiempo real. Además, se cuenta con un entorno adicional que permite exportar los detalles de los eventos a un formato PDF, siendo más cómodo para imprimir o compartir en caso de ser necesario.
 
-##Despliegue mediante Docker
+## Despliegue mediante Docker
 
 Los ficheros necesarios para realizar el despliegue mediante Docker se encuentran en [la carpeta Docker](/Docker/). Para evitar la exposición de contraseñas, deberá crearse un secreto que se encargará de guardar la contraseña que utilizará la base de datos PostgreSQL. Basta con crear un archivo en el directorio *secrets* que contenga en texto plano la contraseña.
 
@@ -27,7 +27,7 @@ $ echo "micontraseña" > ./secrets/postgres_password
 $ docker compose up --build
 ```
 
-##Despliegue mediante Kubernetes
+## Despliegue mediante Kubernetes
 
 Para realizar el despliegue mediante Kubernetes en un entorno basado en la [funcionalidad de Docker Desktop](https://docs.docker.com/desktop/features/kubernetes/), lo primero que será necesario es definir un objeto de tipo secreto que albergará el nombre de usuario y la contraseña de la base de datos PostgreSQL. Para ello, se debe ejecutar el siguiente comando, modificando *"micontraseña"* por la contraseña deseada:
 

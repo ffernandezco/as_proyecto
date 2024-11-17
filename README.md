@@ -40,6 +40,7 @@ $ --from-literal=POSTGRES_PASSWORD="micontraseña"
 A continuación, será necesario ir instanciando cada uno de los objetos de tipo PVC, ConfigMap, Deployment, Service, CronJob e Ingress para un correcto funcionamiento. Tras haber [clonado el repositorio](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository), ejecutando los siguientes comandos pueden inicializarse todos los contenedores, aplicando la configuración del controlador nginx indicada para el Ingress:
 
 ```bash
+$ cd Kubernetes
 $ kubectl apply -f postgres-configmap.yaml
 $ kubectl apply -f postgres-pvc.yaml
 $ kubectl apply -f postgres-deployment.yaml

@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: events-updater
 spec:
-  schedule: "*/10 * * * *"  # Cada 10 minutos
+  schedule: "*/1 * * * *"  # Cada 10 minutos
   jobTemplate:
     spec:
       template:

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalle del Evento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin=""/>
+</head>
+<body>
+    <nav class="py-2 bg-light border-bottom">
+        <div class="container d-flex flex-wrap">
+          <ul class="nav me-auto">
+            <li class="nav-item"><a href="/" class="nav-link link-dark px-2 active" aria-current="page">Agenda Cultural Euskadi</a></li>
+          </ul>
+          <ul class="nav">
+            <li class="nav-item"><a href="https://opendata.euskadi.eus" class="nav-link link-dark px-2">Open Data</a></li>
+            <li class="nav-item"><a href="https://www.ehu.eus/es/" class="nav-link link-dark px-2">UPV/EHU</a></li>
+          </ul>
+        </div>
+    </nav>
+
+    <div class="container p-5">
+        <div class="card shadow-sm">
+            {% if evento.image_url %}
+                <img src="{{ evento.image_url }}" class="card-img-top" alt="Imagen del evento">
+                <!-- Categoría tipo de evento -->
+                {% if evento.type %}
+                    <span class="badge bg-primary position-absolute top-0 start-0 m-3">{{ evento.type }}</span>
+                {% endif %}
+            {% endif %}
+            <div class="card-body">
+                <h3 class="card-title text-center">{{ evento.name | safe}}</h3>
+                {% if evento.municipality %}
+                    <p class="text-muted text-center">{{ evento.municipality }}</p>
+                {% endif %}
+                {% if evento.start_date or evento.end_date %}
+                    <p class="text-center mb-1"><strong>{{ evento.start_date }} - {{ evento.end_date }}</strong></p>
+                {% endif %}
+                    <p class="text-center mb-1"><strong><a href="/api/events/{{ evento.id }}/export_pdf">Versión PDF</a></strong></p>
+
+                <!-- Detalles adicionales -->
+                {% if evento.place %}<p><strong>Lugar:</strong> {{ evento.place }}</p>{% endif %}
+                {% if evento.price %}<p><strong>Precio:</strong> {{ evento.price }}</p>{% endif %}
+                {% if evento.language %}<p><strong>Idioma:</strong> {{ evento.language }}</p>{% endif %}
+
+                <!-- Descripción decodificada -->
+                {% if evento.description %}
+                    <div><strong>Descripción:</strong> {{ evento.description | safe }}</div>
+                {% endif %}
+
+                <!-- Botón de más información -->
+                {% if evento.url_event %}
+                    <div class="text-center mt-3">
+                        <a href="{{ evento.url_event }}" target="_blank" class="btn btn-primary">Más información</a>
+                    </div>
+                {% endif %}
+
+                <!-- Mapa de Leaflet -->
+                {% if evento.latitude and evento.longitude %}
+                    <div id="map" style="height: 400px;" class="mt-4"></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS para el mapa -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
+    
+    <script>
+        {% if evento.latitude and evento.longitude %}
+        var map = L.map('map').setView([{{ evento.latitude }}, {{ evento.longitude }}], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        L.marker([{{ evento.latitude }}, {{ evento.longitude }}]).addTo(map)
+            .bindPopup("<b>{{ evento.name }}</b><br>{{ evento.place or 'Ubicación del evento' }}")
+            .openPopup();
+        {% else %}
+        document.getElementById('map').innerHTML = "<p class='text-center mt-3'>Ubicación no disponible para este evento.</p>";
+        {% endif %}
+    </script>
+    <div class="d-flex justify-content-center mt-4">
+        <a href="/" class="btn btn-secondary me-2">Todos los eventos</a>
+    </div>
+
+    <footer class="text-muted mt-5 pt-4 footer bg-light">
+        <div class="container">
+        <p>Creado por Francisco Fernández a partir de los datos de la <a href="https://opendata.euskadi.eus/api-culture/">API de Open Data Euskadi</a>.</p>
+        <p>Diseño adaptado a partir de <a href="https://getbootstrap.com/docs/4.0/examples/album/">Bootstrap Examples</a>.</p>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>

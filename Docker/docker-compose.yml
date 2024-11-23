@@ -30,7 +30,7 @@ services:
       - "8081:8080"
 
   updater:
-    image: franciscofdez/updater-amd64:latest
+    image: franciscofdez/as-updater:latest
     container_name: updater
     environment:
       POSTGRES_USER: as
@@ -44,7 +44,7 @@ services:
       - postgres
 
   flask:
-    image: franciscofdez/flask_app-amd64:latest
+    image: franciscofdez/as-flask:latest
     container_name: flask
     environment:
       POSTGRES_USER: as

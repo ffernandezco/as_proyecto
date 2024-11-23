@@ -58,3 +58,34 @@ $ kubectl apply -f nginx-service.yaml
 $ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.3/deploy/static/provider/cloud/deploy.yaml
 $ kubectl apply -f ingress.yaml
 ```
+
+## Servicios disponibles
+### Servicios
+
+* **nginx:**
+  * Servidor nginx configurado para redirigir el tráfico al servicio Flask.
+  * Basado en: https://hub.docker.com/_/nginx
+
+* **postgres:**
+  * Servidor de base de datos PostgreSQL para almacenar información de eventos.
+  * Imagen: https://hub.docker.com/_/postgres
+
+* **adminer:**
+  * Herramienta de administración de bases de datos para PostgreSQL.
+  * Imagen: https://hub.docker.com/_/adminer/
+
+* **updater:**
+  * Actualiza la base de datos PostgreSQL con datos de la API de Open Data Euskadi.
+  * Imagen (propia): https://hub.docker.com/r/franciscofdez/as-updater
+    * Soporta arquitecturas ARM64 y AMD64.
+    * Versión para Kubernetes: https://hub.docker.com/r/franciscofdez/as-updater-k8s
+
+* **flask:**
+  * Proporciona una interfaz web para interactuar con la base de datos y el servicio Gotenberg.
+  * Imagen (propia): https://hub.docker.com/r/franciscofdez/as-flask
+    * Soporta arquitecturas ARM64 y AMD64.
+    * Versión para Kubernetes: https://hub.docker.com/r/franciscofdez/as-flask-k8s
+
+* **gotenberg:**
+  * Genera archivos PDF a partir de las solicitudes del servicio Flask.
+  * Imagen: https://hub.docker.com/r/gotenberg/gotenberg:8

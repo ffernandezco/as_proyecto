@@ -64,7 +64,7 @@ $ kubectl apply -f ingress.yaml
 
 * **nginx:**
   * Servidor nginx configurado para redirigir el tráfico al servicio Flask.
-  * Basado en: https://hub.docker.com/_/nginx
+  * Imagen: https://hub.docker.com/_/nginx
 
 * **postgres:**
   * Servidor de base de datos PostgreSQL para almacenar información de eventos.

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: events-updater
+  name: updater-events
 spec:
   schedule: "*/1 * * * *"  # Cada 10 minutos
   jobTemplate:
@@ -9,8 +9,8 @@ spec:
       template:
         spec:
           containers:
-          - name: events-updater-2
-            image: franciscofdez/events-updater-2:latest
+          - name: updater
+            image: franciscofdez/as-updater-k8s:latest
             env:
             - name: POSTGRES_USER
               valueFrom:

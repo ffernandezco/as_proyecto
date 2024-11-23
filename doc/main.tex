@@ -87,15 +87,15 @@
             \item \textbf{Servicio \textit{nginx}}: propone el uso de un \href{https://nginx.org/en/}{servidor \textit{nginx}} con una configuración personalizada que redirige las peticiones al servicio Flask, sobre el que se hablará más adelante. Se basa en la última versión disponible en Docker Hub de la imagen: \url{https://hub.docker.com/_/nginx}.
             \item \textbf{Servicio \textit{postgres}}: construye un servidor de bases de datos \textit{\href{https://www.postgresql.org}{PostgreSQL}}, al que posteriormente se accederá mediante Flask para mostrar la información de los eventos, así como por el contenedor Python encargado de actualizar la información y por el gestor de bases de datos. Se basa en la última versión disponible en Docker Hub de la imagen: \url{https://hub.docker.com/_/postgres}.
             \item \textbf{Servicio \textit{adminer}}: aunque no aporta ninguna funcionalidad útil de cara al público, el \href{https://www.adminer.org}{gestor Adminer} permite de una forma sencilla gestionar las bases de datos del contenedor PostgreSQL mencionado anteriormente directamente desde una interfaz web basada en PHP. Se basa en la última versión disponible en Docker Hub de la imagen: \url{https://hub.docker.com/_/adminer/}.
-            \item \textbf{Servicio \textit{updater}}: propone un contenedor basado en la última versión de la \href{https://hub.docker.com/_/python}{imagen de Python} que se encargará de ejecutar un script que, a través de la API de Open Data Euskadi, obtendrá los registros más recientes y actualizará la base de datos PostgreSQL mencionada anteriormente incluyendo los registros más recientes. Se trata de una imagen personalizada que, frente a la oficial, incluye la instalación de las librerías necesarias para que el script funcione, así como un \textit{cron} personalizado, que se encarga de comprobar si hay actualizaciones disponibles cada un minuto. Se puede consultar la imagen de forma pública en Docker Hub: \url{https://hub.docker.com/r/franciscofdez/updater-amd64}.
+            \item \textbf{Servicio \textit{updater}}: propone un contenedor basado en la última versión de la \href{https://hub.docker.com/_/python}{imagen de Python} que se encargará de ejecutar un script que, a través de la API de Open Data Euskadi, obtendrá los registros más recientes y actualizará la base de datos PostgreSQL mencionada anteriormente incluyendo los registros más recientes. Se trata de una imagen personalizada que, frente a la oficial, incluye la instalación de las librerías necesarias para que el script funcione, así como un \textit{cron} personalizado, que se encarga de comprobar si hay actualizaciones disponibles cada un minuto. Se puede consultar la imagen de forma pública en Docker Hub: \url{https://hub.docker.com/r/franciscofdez/as-updater}.
             \begin{itemize}
-                \item La imagen fue creada originalmente en la arquitectura ARM, contando con disponibilidad limitada al ejecutarse en entornos AMD64: \url{https://hub.docker.com/r/franciscofdez/updater}
-                \item Para ejecutarse en un entorno Kubernetes, se ha creado la siguiente imagen dedicada, que en este caso está optimizada para ser instanciada mediante un \textit{Cronjob} y, por tanto, son necesarios menos pasos para generarla: \url{https://hub.docker.com/r/franciscofdez/events-updater-2}
+                \item La imagen fue creada originalmente en la arquitectura ARM, pero se ha construido tanto para ARM64 como para AMD64 por lo que no debería dar problemas en los entornos habituales.
+                \item Para ejecutarse en un entorno Kubernetes, se ha creado la siguiente imagen dedicada, que en este caso está optimizada para ser instanciada mediante un \textit{Cronjob} y, por tanto, son necesarios menos pasos para generarla: \url{https://hub.docker.com/r/franciscofdez/as-updater-k8s}
             \end{itemize}
-            \item \textbf{Servicio \textit{flask}}: construye un segundo contenedor personalizado, de nuevo basado en la última versión de la \href{https://hub.docker.com/_/python}{imagen de Python}, que se encargará de porporcionar a nginx la salida necesaria según la consulta realizada sobre el puerto 80. En este caso, se ha optado por una imagen personalizada que instala las dependencias necesarias, incluyendo el \href{https://flask.palletsprojects.com/en/stable/}{motor Flask}, y que cuenta con un fichero \textit{app.py} que se encargará de gestionar las peticiones, bien por consultas a la base de datos PostgreSQL y ofreciendo salidas a través de las plantillas diseñadas, o bien realizando una solicitud al servicio Gotenberg que se expondrá a continuación. Se puede consultar la imagen de forma pública en Docker Hub: \url{https://hub.docker.com/r/franciscofdez/flask_app-amd64}.
+            \item \textbf{Servicio \textit{flask}}: construye un segundo contenedor personalizado, de nuevo basado en la última versión de la \href{https://hub.docker.com/_/python}{imagen de Python}, que se encargará de porporcionar a nginx la salida necesaria según la consulta realizada sobre el puerto 80. En este caso, se ha optado por una imagen personalizada que instala las dependencias necesarias, incluyendo el \href{https://flask.palletsprojects.com/en/stable/}{motor Flask}, y que cuenta con un fichero \textit{app.py} que se encargará de gestionar las peticiones, bien por consultas a la base de datos PostgreSQL y ofreciendo salidas a través de las plantillas diseñadas, o bien realizando una solicitud al servicio Gotenberg que se expondrá a continuación. Se puede consultar la imagen de forma pública en Docker Hub: \url{https://hub.docker.com/r/franciscofdez/as-flask}.
             \begin{itemize}
-                \item La imagen fue creada originalmente en la arquitectura ARM, contando con disponibilidad limitada al ejecutarse en entornos AMD64: \url{https://hub.docker.com/r/franciscofdez/flask_app}
-                \item Para ejecutarse en un entorno Kubernetes, se ha creado la siguiente imagen dedicada: \url{https://hub.docker.com/r/franciscofdez/flask-k8s}
+                \item La imagen fue creada originalmente en la arquitectura ARM, pero se ha construido tanto para ARM64 como para AMD64 por lo que no debería dar problemas en los entornos habituales.
+                \item Para ejecutarse en un entorno Kubernetes, se ha creado la siguiente imagen dedicada: \url{https://hub.docker.com/r/franciscofdez/as-flask-k8s}
             \end{itemize}
             \item \textbf{Servicio \textit{gotenberg}}: se trata de una funcionalidad adicional añadida, que permite obtener la información de un evento en formato PDF. El servicio se basa en \href{https://gotenberg.dev}{el motor Gotenberg}, que permite crear una API sencilla para obtener ficheros en formato PDF. Las consultas a dicha API estarán gestionadas por el servicio Flask mencionado anteriormente, permitiendo al usuario final descargar cualquier fichero generado si así lo desea. Se basa en la versión 8 de la imagen oficial disponible en Docker Hub: \url{https://hub.docker.com/r/gotenberg/gotenberg/}.
         \end{itemize}
@@ -131,8 +131,8 @@
                 
                 \\ \textbf{postgres} & {\parbox{5cm}{\textit{\textbf{\href{https://hub.docker.com/_/postgres}{postgres:latest}}} \\ Servidor de base de datos basado en PostgreSQL, usado para almacenar la información de los eventos. Crea automáticamente un usuario y una base de datos con la contraseña definida en el secreto correspondiente.}} & 5432 & 5432 \\
                 \\ \textbf{adminer} & {\parbox{5cm}{\textit{\textbf{\href{https://hub.docker.com/_/adminer/}{adminer:latest}}}\\ Permite gestionar desde una interfaz visual la base de datos PostgreSQL mencionada anteriormente.}} & 8080 & 8081 \\
-                \\ \textbf{updater} & {\parbox{5cm}{\textit{\textbf{\href{https://hub.docker.com/r/franciscofdez/updater-amd64}{franciscofdez/updater-amd64:latest}}} \\ Contenedor basado en Python que realiza, de forma periódica, consultas a la API de Open Data Euskadi para descargar los eventos más recientes de la agenda cultural.}} & -- & -- \\
-                \\ \textbf{flask} & {\parbox{5cm}{\textbf{\textit{\href{https://hub.docker.com/r/franciscofdez/flask_app-amd64}{franciscofdez/flask\_app-amd64:latest}}} \\ Contenedor basado en Python con Flask usado para mostrar los detalles de los eventos en base a plantillas diseñadas con Bootstrap y dirigir las solicitudes a los servicios adecuados.}} & 5000 & 5001 \\
+                \\ \textbf{updater} & {\parbox{5cm}{\textit{\textbf{\href{https://hub.docker.com/r/franciscofdez/as-updater}{franciscofdez/as-updater:latest}}} \\ Contenedor basado en Python que realiza, de forma periódica, consultas a la API de Open Data Euskadi para descargar los eventos más recientes de la agenda cultural.}} & -- & -- \\
+                \\ \textbf{flask} & {\parbox{5cm}{\textbf{\textit{\href{https://hub.docker.com/r/franciscofdez/as-flask}{franciscofdez/as-flask:latest}}} \\ Contenedor basado en Python con Flask usado para mostrar los detalles de los eventos en base a plantillas diseñadas con Bootstrap y dirigir las solicitudes a los servicios adecuados.}} & 5000 & 5001 \\
                 \\ \textbf{gotenberg} & {\parbox{5cm}{\textit{\textbf{\href{https://hub.docker.com/r/gotenberg/gotenberg}{gotenberg/gotenberg:8}}} \\ Permite, mediante una API, realizar múltiples acciones relacionadas con documentos PDF. Se usa para convertir ficheros HTML con información sobre los eventos en este formato.}} & 3000 & 3000 \\
                 \bottomrule
             \end{tabularx}
@@ -142,7 +142,7 @@
 
         En lo que respecta a las imágenes propias, su código fuente se encuentra en el directorio anexo \textit{docker-images}, y pueden clonarse de forma directa al estar disponibles de forma pública en Docker Hub. A continuación se expone cómo han sido creadas y su funcionalidad en el proyecto:
 
-        \subsection{Imagen \textit{updater}}
+        \subsection{Imagen \textit{as-updater}}
 
             El propósito de esta imagen es recoger, a partir de la API de Open Data Euskadi, los datos correspondientes a la agenda cultural del año en curso. Para gestionar esto, a partir de la imagen \textit{\href{https://hub.docker.com/_/python}{python:latest}}, se crea un contenedor en el que se instalan las dependencias \textit{requests}, \textit{psycopg2} y \textit{datetime}, necesarias para ejecutar el código del programa, que se encuentra descrito en el fichero \textit{main.py}.
     
@@ -155,9 +155,9 @@
     
             Por la estructura del contenedor, se deben especificar las variables de entorno en el propio fichero del cron. Además, dejaremos el resultado en un fichero \textit{cron.log} para poder depurar errores. Toda esta configuración se expresa en el fichero \textit{Dockerfile} usado para crear la imagen.
 
-        \subsection{Imagen \textit{flask\_app}}
+        \subsection{Imagen \textit{as-flask}}
 
-            La imagen personalizada \textit{flask\_app} se encarga de controlar un servidor basado en Flask, que se usará de cara al frontend de la aplicación. Para ello, se parte de nuevo de la imagen \textit{\href{https://hub.docker.com/_/python}{python:latest}}. A continuación, se realiza la instalación de las dependencias \textit{Flask}, \textit{flask-cors}, \textit{psycopg2} y \textit{requests}. Estas dependencias serán usadas por el fichero \textit{app.py}, que será el encargado de proporcionar las funcionalidades de Flask.
+            La imagen personalizada \textit{as-flask} se encarga de controlar un servidor basado en Flask, que se usará de cara al frontend de la aplicación. Para ello, se parte de nuevo de la imagen \textit{\href{https://hub.docker.com/_/python}{python:latest}}. A continuación, se realiza la instalación de las dependencias \textit{Flask}, \textit{flask-cors}, \textit{psycopg2} y \textit{requests}. Estas dependencias serán usadas por el fichero \textit{app.py}, que será el encargado de proporcionar las funcionalidades de Flask.
 
             En el directorio \textit{/templates}, se cuenta con diferentes plantillas, que serán las que tome en cuenta Flask. Además, es el encargado de gestionar las consultas del frontend a la base de datos PostgreSQL, así como de las solicitudes a la API de Gotenberg en el caso de que el usuario solicite un documento PDF.
 
@@ -253,7 +253,7 @@
                 \begin{itemize}
                     \item \textit{\textbf{updater-cronjob.yaml}}: define un objeto de tipo \textit{Cronjob}, \textit{\textbf{funcionalidad de Kubernetes no vista en clase}}, que se encargará de instanciar, cada 10 minutos, el servicio de actualización de datos de acuerdo con las siguientes configuraciones.
                     \begin{itemize}
-                        \item \textbf{Imagen base (propia)}: \href{https://hub.docker.com/r/franciscofdez/events-updater-2}{franciscofdez/events-updater-2:latest}. Se utiliza una imagen diferente a la de Docker pero con la misma funcionalidad, debido a que no es necesario configurar un \textit{cronjob} al usar, en su lugar, la funcionalidad de Kubernetes, así como para adaptarse a la forma de gestionar los secretos.
+                        \item \textbf{Imagen base (propia)}: \href{https://hub.docker.com/r/franciscofdez/as-updater-k8s}{franciscofdez/as-updater-k8s:latest}. Se utiliza una imagen diferente a la de Docker pero con la misma funcionalidad, debido a que no es necesario configurar un \textit{cronjob} al usar, en su lugar, la funcionalidad de Kubernetes, así como para adaptarse a la forma de gestionar los secretos.
                         \item Utiliza como parámetros los datos de la base de datos del servicio PostgreSQL para conectarse, así como el secreto configurado previamente.
                     \end{itemize}
                 \end{itemize}
@@ -275,7 +275,7 @@
                 \begin{itemize}
                     \item \textit{\textbf{flask-deployment.yaml}}: objeto encargado de gestionar el contenedor, basado en Flask, que se mostrará en el frontend de la aplicación. Se encarga de mostrar, en base a las plantillas ya creadas, el contenido de la base de datos, o de llamar al servicio Gotenberg cuando un usuario solicita la creación de un documento PDF.
                     \begin{itemize}
-                        \item \textbf{Imagen base (propia)}: \href{https://hub.docker.com/r/franciscofdez/flask-k8s}{franciscofdez/flask-k8s:latest}. Se utiliza una imagen diferente a la de Docker pero con la misma funcionalidad, debido a cómo funciona el entorno Python en Kubernetes, así como para adaptarse a la forma de gestionar los secretos.
+                        \item \textbf{Imagen base (propia)}: \href{https://hub.docker.com/r/franciscofdez/as-flask-k8s}{franciscofdez/as-flask-k8s:latest}. Se utiliza una imagen diferente a la de Docker pero con la misma funcionalidad, debido a cómo funciona el entorno Python en Kubernetes, así como para adaptarse a la forma de gestionar los secretos.
                         \item \textbf{Número de réplicas}: 1
                         \item Utiliza como parámetros los datos de la base de datos del servicio PostgreSQL para conectarse, así como el secreto configurado previamente.
                     \end{itemize}
@@ -347,6 +347,7 @@
     \clearpage
     \chapter{Bibliografía}
         \begin{itemize}
+            \item \textit{Apuntes de la asignatura Administración de Sistemas disponibles en eGela UPV/EHU}. Unai López Novoa.
             \item \href{https://docs.docker.com}{\textit{Docker Docs}}.
             \item \href{https://github.com/adiii717/docker-python-cronjob/tree/master/cron-numpy}{\textit{adiii717/docker-python-cronjob/cron-numpy}}. GitHub.
             \item \href{https://es.stackoverflow.com/questions/564186/cron-en-un-dockerfile}{\textit{cron en un dockerfile}}. Stack Overflow en español.
@@ -362,6 +363,7 @@
             \item \href{https://www.cloudytuts.com/guides/kubernetes/how-to-deploy-postgress-kubernetes/}{\textit{How to Deploy Postgres on Kubernetes}}. CloudyTuts.
             \item \href{https://medium.com/@muppedaanvesh/a-hand-on-guide-to-kubernetes-cronjobs-%EF%B8%8F-47393a98716d}{\textit{A Hands-On Guide to Kubernetes CronJobs}}. Medium (\textit{@muppedaanvesh}).
             \item \href{https://www.geeksforgeeks.org/how-to-deploy-flask-app-on-kubernetes/}{\textit{How to Deploy Flask App on Kubernetes?}}. GeeksForGeeks.
+            \item \href{https://docs.docker.com/build/building/multi-platform/#build-multi-platform-images}{\textit{Build multi-platform images}}. Docker Docs.
         \end{itemize}
 
 \end{document}
